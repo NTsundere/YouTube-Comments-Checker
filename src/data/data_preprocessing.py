@@ -9,7 +9,6 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import logging
 
-# logging configuration
 logger = logging.getLogger('data_preprocessing')
 logger.setLevel('DEBUG')
 
@@ -26,7 +25,6 @@ file_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
-# Download required NLTK data
 nltk.download('wordnet')
 nltk.download('stopwords')
 
@@ -90,16 +88,13 @@ def main():
     try:
         logger.debug("Starting data preprocessing...")
         
-        # Fetch the data from data/raw
         train_data = pd.read_csv('./data/raw/train.csv')
         test_data = pd.read_csv('./data/raw/test.csv')
         logger.debug('Data loaded successfully')
 
-        # Preprocess the data
         train_processed_data = normalize_text(train_data)
         test_processed_data = normalize_text(test_data)
 
-        # Save the processed data
         save_data(train_processed_data, test_processed_data, data_path='./data')
     except Exception as e:
         logger.error('Failed to complete the data preprocessing process: %s', e)

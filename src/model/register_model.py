@@ -5,11 +5,9 @@ import mlflow
 import logging
 import os
 
-# Set up MLflow tracking URI
 mlflow.set_tracking_uri("https://dagshub.com/NTsundere/mlflow-reddit-sentiment.mlflow")
 
 
-# logging configuration
 logger = logging.getLogger('model_registration')
 logger.setLevel('DEBUG')
 
@@ -45,10 +43,8 @@ def register_model(model_name: str, model_info: dict):
     try:
         model_uri = f"runs:/{model_info['run_id']}/{model_info['model_path']}"
         
-        # Register the model
         model_version = mlflow.register_model(model_uri, model_name)
         
-        # Transition the model to "Staging" stage
         client = mlflow.tracking.MlflowClient()
         client.transition_model_version_stage(
             name=model_name,
@@ -67,7 +63,6 @@ def main():
         model_info = load_model_info(model_info_path)
         
         model_name = "yt_chrome_plugin_model"
-        # model_name = "my_model"
         register_model(model_name, model_info)
     except Exception as e:
         logger.error('Failed to complete the model registration process: %s', e)

@@ -7,7 +7,6 @@ import logging
 import lightgbm as lgb
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-# logging configuration
 logger = logging.getLogger('model_building')
 logger.setLevel('DEBUG')
 
@@ -66,12 +65,10 @@ def apply_tfidf(train_data: pd.DataFrame, max_features: int, ngram_range: tuple)
         X_train = train_data['clean_comment'].values
         y_train = train_data['category'].values
 
-        # Perform TF-IDF transformation
         X_train_tfidf = vectorizer.fit_transform(X_train)
 
         logger.debug(f"TF-IDF transformation complete. Train shape: {X_train_tfidf.shape}")
 
-        # Save the vectorizer in the root directory
         with open(os.path.join(get_root_directory(), 'tfidf_vectorizer.pkl'), 'wb') as f:
             pickle.dump(vectorizer, f)
 
@@ -91,8 +88,8 @@ def train_lgbm(X_train: np.ndarray, y_train: np.ndarray, learning_rate: float, m
             metric="multi_logloss",
             is_unbalance=True,
             class_weight="balanced",
-            reg_alpha=0.1,  # L1 regularization
-            reg_lambda=0.1,  # L2 regularization
+            reg_alpha=0.1,  
+            reg_lambda=0.1,  
             learning_rate=learning_rate,
             max_depth=max_depth,
             n_estimators=n_estimators
@@ -124,10 +121,8 @@ def get_root_directory() -> str:
 
 def main():
     try:
-        # Get root directory and resolve the path for params.yaml
         root_dir = get_root_directory()
 
-        # Load parameters from the root directory
         params = load_params(os.path.join(root_dir, 'params.yaml'))
         max_features = params['model_building']['max_features']
         ngram_range = tuple(params['model_building']['ngram_range'])
@@ -136,16 +131,12 @@ def main():
         max_depth = params['model_building']['max_depth']
         n_estimators = params['model_building']['n_estimators']
 
-        # Load the preprocessed training data from the interim directory
         train_data = load_data(os.path.join(root_dir, 'data/interim/train_processed.csv'))
 
-        # Apply TF-IDF feature engineering on training data
         X_train_tfidf, y_train = apply_tfidf(train_data, max_features, ngram_range)
 
-        # Train the LightGBM model using hyperparameters from params.yaml
         best_model = train_lgbm(X_train_tfidf, y_train, learning_rate, max_depth, n_estimators)
 
-        # Save the trained model in the root directory
         save_model(best_model, os.path.join(root_dir, 'lgbm_model.pkl'))
 
     except Exception as e:
