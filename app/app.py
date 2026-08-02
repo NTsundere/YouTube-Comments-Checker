@@ -15,9 +15,14 @@ from nltk.stem import WordNetLemmatizer
 from mlflow.tracking import MlflowClient
 import matplotlib.dates as mdates
 import pickle
+import onnxruntime as ort
+import pickle
 
 app = Flask(__name__)
 CORS(app)  
+
+sess = ort.InferenceSession('./lgbm_model.onnx', providers=['CPUExecutionProvider'])
+vectorizer = pickle.load(open('./tfidf_vectorizer.pkl', 'rb'))
 
 # Define the preprocessing function
 def preprocess_comment(comment):
@@ -58,21 +63,21 @@ def preprocess_comment(comment):
 
 
 
-def load_model(model_path, vectorizer_path):
-    """Load the trained model."""
-    try:
-        with open(model_path, 'rb') as file:
-            model = pickle.load(file)
+# def load_model(model_path, vectorizer_path):
+#     """Load the trained model."""
+#     try:
+#         with open(model_path, 'rb') as file:
+#             model = pickle.load(file)
         
-        with open(vectorizer_path, 'rb') as file:
-            vectorizer = pickle.load(file)
+#         with open(vectorizer_path, 'rb') as file:
+#             vectorizer = pickle.load(file)
       
-        return model, vectorizer
-    except Exception as e:
-        raise
+#         return model, vectorizer
+#     except Exception as e:
+#         raise
 
 
-model, vectorizer = load_model("./lgbm_model.pkl", "./tfidf_vectorizer.pkl")  
+# model, vectorizer = load_model("./lgbm_model.pkl", "./tfidf_vectorizer.pkl")  
 
 
 @app.route('/')
@@ -97,9 +102,11 @@ def predict_with_timestamps():
         
         transformed_comments = vectorizer.transform(preprocessed_comments)
 
-        dense_comments = transformed_comments.toarray()  
+        dense_comments = transformed_comments.toarray().astype(np.float32)
         
-        predictions = model.predict(dense_comments).tolist() 
+        input_name = sess.get_inputs()[0].name
+        outputs = sess.run(None, {input_name: dense_comments})
+        predictions = outputs[0].tolist()
         
         predictions = [str(pred) for pred in predictions]
     except Exception as e:
@@ -125,8 +132,10 @@ def predict():
         
         transformed_comments = vectorizer.transform(preprocessed_comments)
 
-        dense_comments = transformed_comments.toarray()  
-        predictions = model.predict(dense_comments).tolist()
+        dense_comments = transformed_comments.toarray().astype(np.float32)
+        input_name = sess.get_inputs()[0].name
+        outputs = sess.run(None, {input_name: dense_comments})
+        predictions = outputs[0].tolist()
         
     except Exception as e:
         return jsonify({"error": f"Prediction failed: {str(e)}"}), 500
